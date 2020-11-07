@@ -1,6 +1,6 @@
 # CryptoPriceAnalyser
 Import cryptocurrency historical price data from Btifinex api, store it in a csv file and perform basic analysis over it.
-This project consists in two programs: an inmporter and an analyser.
+This project consists of two programs: an importer and an analyser.
 
 ## import.py
 This code comes from the Bitfinex API documentation (https://docs.bitfinex.com/docs) and from a blogpost from a bitfinex engenieer (https://medium.com/coinmonks/how-to-get-historical-crypto-currency-data-954062d40d2d). My only adittion has been a line of code to export the DataFrame into a csv file. Make sure to follow the steps of the Bitfinex API docs to set up the connection to the API correctly.
