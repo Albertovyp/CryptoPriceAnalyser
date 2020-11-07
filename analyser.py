@@ -17,8 +17,7 @@ def bar_date_format(series):
 
 
 # Get the data from the CSV file to a pandas DataFrame
-df = pd.read_csv("/Users/alberto_vega_peralta/PycharmProjects/CryptTrading/Data/IOTA-hour.csv",
-                      parse_dates=[0], index_col=['Time'])
+df = pd.read_csv("file_path", parse_dates=[0], index_col=['Time'])
 
 # Prompts the user to introduce a timeframe to analyse
 print("Introduce the timeframe l you'd like to analyse. \nIf you wish to analyse all the data introduce "
