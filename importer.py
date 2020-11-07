@@ -44,4 +44,4 @@ df['Time'] = pd.to_datetime(df['Time'], unit='ms')
 df.set_index('Time', inplace=True)
 df.sort_index(inplace=True)
 # Imports the data into a csv file
-df.to_csv("/Users/alberto_vega_peralta/PycharmProjects/CryptTrading/Data/test.csv")
+df.to_csv("file_path")
