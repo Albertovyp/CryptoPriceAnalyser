@@ -1,125 +1,146 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+from ta.momentum import RSIIndicator
+from ta.volume import MFIIndicator
+import openpyxl
 
 
-def bar_date_format(series):
-    series.index = series.index.map(str)
-    counter = 0
-    output_list = []
-    for i in series.iteritems():
-        c = counter
-        i = series.index[c]
-        i = i[:10]
-        counter = counter + 1
-        output_list.append(i)
+# Add a column with the percentage change of the given interval
+def pct_change(frame, interval):
+    change = frame.Last.pct_change(freq=interval)
+    frame['change'] = change
+    return frame
 
-    return output_list
+
+def typical_price(frame):
+    typ_price = (frame['High'] + frame['Low'] + frame['Last']) / 3
+    frame['Typical'] = typ_price
+    return frame
+
+
+def highest_price(frame):
+    highest_price = round(frame.High.max(), 3)
+    return highest_price
+
+
+def lowest_price(frame):
+    lowest_price = round(frame.Low.min(), 3)
+    return lowest_price
+
+
+def average_price(frame):
+    average_price = round(frame.Typical.mean(), 3)
+    return average_price
+
+
+def biggest_up_movements(frame, interval, number_of_movements):
+    h = frame.change.resample(interval).max().nlargest(number_of_movements)
+    return h
+
+
+def biggest_drawdowns(frame, interval, number_of_movements):
+    s = frame.change.resample(interval).min().nsmallest(number_of_movements)
+    return s
+
+
+def biggest_volume(frame, interval, data_points):
+    v = frame.Volume.resample(interval).sum().nlargest(data_points)
+    return v
+
+
+def lowest_volume(frame, interval, data_points):
+    v = frame.Volume.resample(interval).sum().nsmallest(data_points)
+    return v
+
+
+def volatility(frame):
+    daily_volatility = frame.change.resample('D').mean().std()
+    annualized_volatility = daily_volatility * (356 ** (1/2))
+    return [daily_volatility, annualized_volatility]
+
+
+def simple_moving_average(frame, window):
+    frame['SMA' + str(window)] = df.iloc[:, 1].rolling(window=window).mean()
+    return frame
+
+
+def rsi_indicator(daily_frame):
+    indicator_RSI = RSIIndicator(close=daily_frame['Last'])
+    daily_frame['RSI'] = indicator_RSI.rsi()
+    return daily_frame
+
+
+def money_flow_index(daily_frame):
+    indicator_MFI = MFIIndicator(high=daily_frame['High'], low=daily_frame['Low'], close=daily_frame['Last'],
+                                 volume=daily_frame['Volume'])
+    daily_frame['MFI'] = indicator_MFI.money_flow_index()
+    return daily_frame
+
+
+def simple_moving_average(daily_frame, window):
+    daily_frame['SMA' + str(window)] = daily_frame['Typical'].rolling(window=window).mean()
+    return daily_frame
+
+
+def correlation(frame, asset2_frame):
+    typical_price(frame)
+    typical_price(asset2_frame)
+    asset1 = frame['Typical']
+    asset2 = asset2_frame['Typical']
+    corr = asset1.corr(asset2)
+    return corr
 
 
 # Get the data from the CSV file to a pandas DataFrame
-df = pd.read_csv("file_path", parse_dates=[0], index_col=['Time'])
+df = pd.read_csv("FilePath", parse_dates=[0], index_col=['Time'])
+
+
+df2 = pd.read_csv("FilePath", parse_dates=[0], index_col=['Time'])
 
 # Prompts the user to introduce a timeframe to analyse
-print("Introduce the timeframe l you'd like to analyse. \nIf you wish to analyse all the data introduce "
+print("Introduce the timeframe you'd like to analyse. \nIf you wish to analyse all the data introduce "
       "0.\n"
       "Data format: YYYY-MM-DD")
 start_date = input('Start date: ')
 end_date = input('End date: ')
-
-print("Introduce the size of the intervals you wish to analyse for pct_change and volume"
-      " Options (hour: H, day: D, month: M, year: Y")
-interval = input('Interval: ')
-
-print("Introduce the number of data points you want to display")
-data_points = input('Data points: ')
-data_points = int(data_points)
 
 # Select to desired timeframe in the pandas DataFrame
 if start_date != '0' and end_date != '0':
     mask = (df.index > start_date) & (df.index <= end_date)
     df = df.loc[mask]
 
-# Calculate highest, lowest and average price
-highest_price = round(df.High.max(), 3)
-lowest_price = round(df.Low.min(), 3)
-average_price = round(df.First.mean(), 3)
+# Creates a frame with daily data
+day_df = df.resample('D').last()
+day_df['First'] = df['First'].resample('D').first()
+day_df['High'] = df['High'].resample('D').max()
+day_df['Low'] = df['Low'].resample('D').min()
+day_df['Volume'] = df['Volume'].resample('D').sum()
 
-if interval == 'H' or 'D' or 'M' or 'Y' and data_points > 0:
-    # Calculate the interval percentage variation for every datapoint
-    change = df.First.pct_change(freq=interval)
-    # Add a column with the pct_change to the dataframe
-    df["change"] = change
-    # Highest price increases
-    h = df.change.resample(interval).max().nlargest(data_points)
-    h = 100 * h
-    # Largest price decreases
-    s = df.change.resample(interval).min().nsmallest(data_points)
-    s = 100 * s
-    # Highest volume
-    df = df.astype({'Volume': int})
-    v = df.Volume.resample(interval).sum().nlargest(data_points)
-else:
-    print('You have introduced invalid input')
-    exit()
 
-# Calculates simple moving average (SMA)
-df['SMA_60'] = df.iloc[:,1].rolling(window=60).mean()
+# Examples
+pct_change(df, 'D')
+typical_price(df)
+typical_price(day_df)
+volatility(df)
+rsi_indicator(day_df)
+money_flow_index(day_df)
+simple_moving_average(day_df, 60)
+print(correlation(df, df2))
+print('Highest price (USD):', highest_price(df))
+print('Lowest price (USD): ', lowest_price(df))
+print('Average price (USD): ', average_price(df))
+print('Daily volatility:', volatility(df)[0])
+print('Volatility:', volatility(df)[1])
+
 
 # See info of the Dataframe with all the columns
 with pd.option_context('display.max_columns', None):
+    print(df.head())
     print(df.tail())
+    print(day_df.head())
+    print(day_df.tail())
 
-print('Highest price (USD):', highest_price)
-print('Lowest price (USD): ', lowest_price)
-print('Average price (USD): ', average_price)
 
-# Plot price and SMA
-plt.plot(df['First'], label='Price')
-plt.plot(df['SMA_60'], label='Simple Moving average 60 days')
-plt.title('Price and Simple Moving Average')
-plt.legend(loc='best')
-plt.xlabel('Date')
-plt.ylabel('Price USD')
-plt.show()
-
-# Plot volume
-plt.plot(df['Volume'], label='Volume')
-plt.title('Volume')
-plt.legend(loc='best')
-plt.xlabel('Date')
-plt.ylabel('USD')
-plt.show()
-
-# Plot highest % increases
-plt.bar(bar_date_format(h), h)
-plt.xticks(rotation=30)
-plt.title('Highest price increases')
-plt.xlabel('Date')
-plt.ylabel('% increase')
-x_pos = -0.2
-for index, value in h.iteritems():
-    value = round(value, 2)
-    plt.text(x_pos, value, str(value))
-    x_pos = x_pos + 1
-plt.show()
-
-# Plot highest % decreases
-plt.bar(bar_date_format(s), s)
-plt.title('Highest price decreases')
-plt.xticks(rotation=30)
-plt.xlabel('Date')
-plt.ylabel('% decrease')
-x_pos = -0.2
-for index, value in s.iteritems():
-    value = round(value, 2)
-    plt.text(x_pos, value, str(value))
-    x_pos = x_pos + 1
-plt.show()
-
-# Plot highest volume
-plt.bar(bar_date_format(v), v)
-plt.xticks(rotation=30)
-plt.title('Highest volume')
-plt.xlabel('Date')
-plt.ylabel('USD volume')
-plt.show()
+# Import to excel
+with pd.ExcelWriter('CryptoPriceData.xlsx', mode='a') as writer:
+    df['Last'].resample('D').last().to_excel(writer, sheet_name='Last_Price')
+    day_df.to_excel(writer, sheet_name='Daily Data Frame')
