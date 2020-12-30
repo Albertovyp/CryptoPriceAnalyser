@@ -3,7 +3,7 @@ import bitfinex
 import time
 import pandas as pd
 
-#function necessary to retrieve long data intervals
+# Necessary to retrieve long data intervals
 def fetch_data(start, stop, symbol, interval, tick_limit, step):
     # Create api instance
     api_v2 = bitfinex.bitfinex_v2.api_v2()
