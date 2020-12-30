@@ -3,7 +3,7 @@ import bitfinex
 import time
 import pandas as pd
 
-
+#function necessary to retrieve long data intervals
 def fetch_data(start, stop, symbol, interval, tick_limit, step):
     # Create api instance
     api_v2 = bitfinex.bitfinex_v2.api_v2()
@@ -19,6 +19,28 @@ def fetch_data(start, stop, symbol, interval, tick_limit, step):
     return data
 
 
+def clean_frame(frame):
+    frame.drop_duplicates(inplace=True)
+    frame.sort_index(inplace=True)
+    counter = 0
+    #Fill the prev_index variable
+    for index, row in frame.iterrows():
+        prev_index = index[:1]
+        counter = counter + 1
+        if counter > 1:
+            break
+    for index, row in frame.iterrows():
+        if prev_index == index[:1]:
+            prev_index = index[:1]
+        else:
+            frame.drop(row, axis=1)
+            frame.drop(frame.tail(1).index, inplace=True)
+    return frame
+
+
+print('Do you want to update an existing file?. If you want to update introduce yes. \n')
+update = input('Do you want to update?: ')
+
 # Set step size
 time_step = 60000000
 
@@ -27,21 +49,27 @@ pair = 'iotusd'  # Currency pair of interest
 bin_size = '1h'  # This will return minute, hour or day data
 limit = 1000  # We want the maximum of 1000 data points
 # Define the start date
-t_start = datetime.datetime(2020, 8, 13, 0, 0)
+t_start = datetime.datetime(2020, 12, 14, 0, 0)
 t_start = time.mktime(t_start.timetuple()) * 1000
 # Define the end date
-t_stop = datetime.datetime(2020, 8, 14, 0, 0)
+t_stop = datetime.datetime(2020, 12, 18, 0, 0)
 t_stop = time.mktime(t_stop.timetuple()) * 1000
 result = fetch_data(start=t_start, stop=t_stop, symbol=pair, interval=bin_size, tick_limit=limit, step=time_step)
 
-# Converts the timestamp into readable datetime info
-
 # Creates a pandas dataframe to store the results from the query
-df = pd.DataFrame(result, columns=['Time', 'First', 'Last',
-                                'High', 'Low', 'Volume'])
-df.drop_duplicates(inplace=True)
+df = pd.DataFrame(result, columns=['Time', 'First', 'Last', 'High', 'Low', 'Volume'])
 df['Time'] = pd.to_datetime(df['Time'], unit='ms')
 df.set_index('Time', inplace=True)
-df.sort_index(inplace=True)
+
 # Imports the data into a csv file
-df.to_csv("file_path")
+if update == 'yes':
+    df.to_csv("file_path", mode='a')
+    df = pd.read_csv("file_path", parse_dates=[0], index_col=['Time'])
+    clean_frame(df)
+    df.to_csv("file_path", mode='w')
+
+else:
+    df.to_csv("file_path", mode='w')
+
+
+print('Process finished successfully')
